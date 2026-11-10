@@ -51,4 +51,28 @@ object GeradorFicha {
             sufixos = listOf("mos", "thos", "rius", "lech", "us")
         )
     )
+
+    fun gerarFichaAleatoria(): FichaRPG {
+        val classe = classes.random()
+        val atributoDestaque = when (classe) {
+            "Guerreiro", "Bárbaro" -> "Força"
+            "Mago" -> "Inteligência"
+            "Ladino", "Patrulheiro" -> "Agilidade"
+            "Clérigo" -> "Sabedoria"
+            "Bardo", "Paladino" -> "Carisma"
+            else -> error("A classe $classe não possui um atributo definido.")
+        }
+
+        val raca = racas.random()
+        val nome = raca.prefixos.random() + raca.sufixos.random()
+
+        return FichaRPG(
+            id = kotlin.random.Random.nextInt(1, Int.MAX_VALUE),
+            nome = nome,
+            classe = classe,
+            raca = raca.nome,
+            atributoDestaque = atributoDestaque
+        )
+    }
+
 }
