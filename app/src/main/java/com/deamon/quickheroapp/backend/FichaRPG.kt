@@ -5,7 +5,10 @@ data class FichaRPG(
     val nome: String,
     val classe: String,
     val raca: String,
-    val atributoDestaque: String
+    val alinhamento: String,
+    val atributo: String,
+    val bonusRacial: String,
+    val gancho: String
 )
 
 data class DadosRaca(

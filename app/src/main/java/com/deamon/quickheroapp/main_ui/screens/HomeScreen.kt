@@ -1,354 +1,436 @@
 package com.deamon.quickheroapp.main_ui.screens
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.deamon.quickheroapp.R
 import com.deamon.quickheroapp.backend.FichaRPG
 import com.deamon.quickheroapp.backend.GeradorFicha
-
-private data class CharacterCardContent(
-    val ficha: FichaRPG,
-    val alinhamento: String,
-    val gancho: String
-)
-
-private val initialCard = CharacterCardContent(
-    ficha = FichaRPG(
-        id = 0,
-        nome = "Faerion",
-        classe = "Mago",
-        raca = "Elfo",
-        atributoDestaque = "Inteligência"
-    ),
-    alinhamento = "Caótico e Bom",
-    gancho = "Guarda o mapa de um tesouro indecifrável."
-)
-
-private val alinhamentos = listOf(
-    "Leal e Bom",
-    "Neutro e Bom",
-    "Caótico e Bom",
-    "Leal e Neutro",
-    "Neutro Puro",
-    "Caótico e Neutro"
-)
-
-private val ganchos = listOf(
-    "Procura por um irmão desaparecido após um ataque à sua vila.",
-    "Deve uma grande dívida de ouro a uma guilda de ladrões.",
-    "Guarda o mapa de um tesouro indecifrável.",
-    "Um amuleto antigo esquenta na presença de magia."
-)
+import com.deamon.quickheroapp.R
 
 @Composable
-fun HomeScreen() {
-    var card by remember { mutableStateOf(initialCard) }
-    var isFavorite by remember { mutableStateOf(false) }
-    var isMenuExpanded by remember { mutableStateOf(false) }
+fun HomeScreen(
+    onNavigateToDetails: (FichaRPG) -> Unit = {},
+    onNavigateToFavorites: () -> Unit = {}
+) {
+    var fichaAtual by remember { mutableStateOf<FichaRPG?>(null) }
+    var rotacaoDado by remember { mutableFloatStateOf(0f) }
 
-    fun generateCharacter() {
-        card = CharacterCardContent(
-            ficha = GeradorFicha.gerarFichaAleatoria(),
-            alinhamento = alinhamentos.random(),
-            gancho = ganchos.random()
-        )
-    }
+    val anguloAnimado by animateFloatAsState(
+        targetValue = rotacaoDado,
+        animationSpec = tween(durationMillis = 450),
+        label = "rotacao_d20"
+    )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(R.drawable.wallpaperdnd),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+    Scaffold(
+        topBar = {
+            TopBarQuickHero(
+                onMenuClick = { /* Ação futura do drawer/menu */ },
+                onFavoritesClick = onNavigateToFavorites
+            )
+        },
+        containerColor = Color.Black
+    ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0x990A0608))
-        )
-
-        Column(
-            modifier = Modifier.fillMaxSize()
+                .padding(innerPadding)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFB5092B))
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .height(58.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clickable(
-                                role = Role.Button,
-                                onClick = { isMenuExpanded = true }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Canvas(modifier = Modifier.size(width = 24.dp, height = 20.dp)) {
-                            val lineWidth = 2.dp.toPx()
-                            for (index in 0..2) {
-                                val y = size.height * index / 2f
-                                drawLine(
-                                    color = Color.White,
-                                    start = androidx.compose.ui.geometry.Offset(0f, y),
-                                    end = androidx.compose.ui.geometry.Offset(size.width, y),
-                                    strokeWidth = lineWidth
-                                )
-                            }
-                        }
-                    }
-                    DropdownMenu(
-                        expanded = isMenuExpanded,
-                        onDismissRequest = { isMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Gerar nova ficha") },
-                            onClick = {
-                                isMenuExpanded = false
-                                generateCharacter()
-                            }
-                        )
-                    }
-                }
+            // 1. WALLPAPER DE FUNDO (baixados__2_) com ajuste de contraste, brilho e saturação
+            Image(
+                painter = painterResource(id = R.drawable.baixados__2_),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                colorFilter = ColorFilter.colorMatrix(
+                    criarColorMatrix(
+                        contrast = 1.08f,
+                        brightness = -12f,
+                        saturation = 1.15f
+                    )
+                )
+            )
 
-                Text(
-                    text = "D&D Quick\nHero",
-                    modifier = Modifier.weight(1f),
-                    color = Color.White,
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 19.sp,
-                    textAlign = TextAlign.Center
+            // Camada atmosférica quente/escura para manter o contraste fiel ao Figma
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x4D2A0808), // Topo levemente avermelhado escuro
+                                Color(0x331A0B0B), // Centro mais aberto para o dragão/castelo
+                                Color(0x730D0606)  // Base mais escura para destacar a ficha
+                            )
+                        )
+                    )
+            )
+
+            // 2. CONTEÚDO PRINCIPAL (Espaçamento fiel ao protótipo)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(22.dp))
+
+                // Título com brilho dourado/âmbar e contorno fiel ao Figma
+                TituloComBrilhoDourado(texto = "Clique no dado e\ngere sua ficha!")
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // 3. BOTÃO DO DADO (baixados__1_ + whitedice)
+                BotaoDadoD20(
+                    angulo = anguloAnimado,
+                    onClick = {
+                        rotacaoDado += 360f
+                        fichaAtual = GeradorFicha.gerarFichaAleatoria()
+                    }
                 )
 
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 4. CARD DA FICHA (Pergaminho com moldura marrom escura)
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clickable(
-                            role = Role.Button,
-                            onClick = { isFavorite = !isFavorite }
-                        ),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(bottom = 24.dp),
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    Text(
-                        text = if (isFavorite) "♥" else "♡",
-                        color = Color.White,
-                        fontSize = 29.sp
-                    )
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = fichaAtual != null,
+                        enter = fadeIn(tween(300)) + slideInVertically(
+                            initialOffsetY = { it / 6 },
+                            animationSpec = tween(300)
+                        )
+                    ) {
+                        fichaAtual?.let { ficha ->
+                            CardPergaminhoFigma(
+                                ficha = ficha,
+                                onClick = { onNavigateToDetails(ficha) }
+                            )
+                        }
+                    }
                 }
             }
+        }
+    }
+}
 
+@Composable
+private fun TopBarQuickHero(
+    onMenuClick: () -> Unit,
+    onFavoritesClick: () -> Unit
+) {
+    // Gradiente horizontal sutil do vermelho carmim (#A50722) ao vermelho coral (#C8322B)
+    val gradienteTopBar = Brush.horizontalGradient(
+        colors = listOf(
+            Color(0xFFA50722),
+            Color(0xFFB31425),
+            Color(0xFFC8322B)
+        )
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .height(76.dp)
+            .background(gradienteTopBar)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        IconButton(onClick = onMenuClick) {
+            Icon(
+                imageVector = Icons.Default.Menu,
+                contentDescription = "Menu",
+                tint = Color.White,
+                modifier = Modifier.size(34.dp)
+            )
+        }
+
+        Text(
+            text = "D&D Quick\nHero",
+            color = Color.White,
+            fontSize = 23.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 26.sp,
+            textAlign = TextAlign.Center
+        )
+
+        IconButton(onClick = onFavoritesClick) {
+            Icon(
+                imageVector = Icons.Default.Favorite,
+                contentDescription = "Fichas Favoritas",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TituloComBrilhoDourado(texto: String) {
+    Box(contentAlignment = Alignment.Center) {
+        // Camada traseira: Contorno dourado/âmbar + sombra quente
+        Text(
+            text = texto,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 35.sp,
+            textAlign = TextAlign.Center,
+            style = TextStyle(
+                color = Color(0xFFD49B27),
+                drawStyle = Stroke(
+                    width = 4.5f,
+                    join = StrokeJoin.Round
+                ),
+                shadow = Shadow(
+                    color = Color(0xCC5E1906),
+                    offset = Offset(0f, 3f),
+                    blurRadius = 10f
+                )
+            )
+        )
+
+        // Camada frontal: Texto principal branco nítido
+        Text(
+            text = texto,
+            color = Color.White,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = 35.sp,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun BotaoDadoD20(
+    angulo: Float,
+    onClick: () -> Unit
+) {
+    val shapeDado = RoundedCornerShape(30.dp)
+
+    Box(
+        modifier = Modifier
+            .width(248.dp)
+            .height(142.dp)
+            .shadow(elevation = 12.dp, shape = shapeDado)
+            .clip(shapeDado)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(color = Color.White),
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        // Fundo psicodélico carmim/magenta (baixados__1_)
+        Image(
+            painter = painterResource(id = R.drawable.baixados__1_),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            colorFilter = ColorFilter.colorMatrix(
+                criarColorMatrix(
+                    contrast = 1.18f,
+                    brightness = -6f,
+                    saturation = 1.25f
+                )
+            )
+        )
+
+        // Vinheta sutil nas bordas internas do botão
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0x40120008)
+                        )
+                    )
+                )
+        )
+
+        // Ícone D20 branco (whitedice)
+        Image(
+            painter = painterResource(id = R.drawable.whitedice),
+            contentDescription = "Rolar Dado D20",
+            modifier = Modifier
+                .size(104.dp)
+                .rotate(angulo),
+            contentScale = ContentScale.Fit
+        )
+    }
+}
+
+@Composable
+fun CardPergaminhoFigma(
+    ficha: FichaRPG,
+    onClick: () -> Unit
+) {
+    val shapeCard = RoundedCornerShape(24.dp)
+    val corMolduraMarrom = Color(0xFF3E231D) // Borda externa espessa do protótipo
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .defaultMinSize(minHeight = 310.dp)
+            .shadow(elevation = 14.dp, shape = shapeCard)
+            .clip(shapeCard)
+            .clickable(onClick = onClick),
+        shape = shapeCard,
+        border = BorderStroke(width = 9.dp, color = corMolduraMarrom),
+        color = Color(0xFF5A392B)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Textura de pergaminho envelhecido (grunge_paper_background)
+            Image(
+                painter = painterResource(id = R.drawable.grunge_paper_background),
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop,
+                colorFilter = ColorFilter.colorMatrix(
+                    criarColorMatrix(
+                        contrast = 1.12f,
+                        brightness = -18f,
+                        saturation = 1.05f
+                    )
+                )
+            )
+
+            // Tonalidade marrom quente + vinheta interna para legibilidade do texto branco
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x593A1E14),
+                                Color(0x402D160E),
+                                Color(0x7324100A)
+                            )
+                        )
+                    )
+            )
+
+            // Conteúdo textual da Ficha
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly
+                    .padding(horizontal = 22.dp, vertical = 26.dp)
             ) {
+                // Nome do Personagem
                 Text(
-                    text = "Clique no dado e\ngere sua ficha!",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                    text = "🧙‍♂️ ${ficha.nome.uppercase()}",
                     color = Color.White,
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 28.sp,
-                    lineHeight = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp
                 )
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.82f)
-                        .height(100.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .clickable(role = Role.Button, onClick = ::generateCharacter),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.baixados__1_),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                Spacer(modifier = Modifier.height(22.dp))
+
+                // Raça • Classe • Alinhamento
+                Text(
+                    text = "${ficha.raca} • ${ficha.classe} • ${ficha.alinhamento}",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Normal
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Atributos e Gancho
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "  ✦ Atributo: ${ficha.atributo}",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
                     )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0x22090012))
+                    Text(
+                        text = "✦ Bônus Racial: ${ficha.bonusRacial}",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
                     )
-                    DiceIllustration(modifier = Modifier.size(width = 112.dp, height = 88.dp))
+                    Text(
+                        text = "✦ Gancho: ${ficha.gancho}",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        lineHeight = 21.sp
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                CharacterCard(card = card, modifier = Modifier.fillMaxWidth(0.90f))
             }
         }
     }
 }
 
-@Composable
-private fun CharacterCard(card: CharacterCardContent, modifier: Modifier = Modifier) {
-    val raceBonus = when (card.ficha.raca) {
-        "Elfo" -> "+2 Agilidade"
-        "Anão" -> "+2 Vitalidade"
-        "Humano" -> "+1 em Todos os Atributos"
-        "Tiefling" -> "+2 Carisma"
-        else -> "Bônus racial por definir"
-    }
-    val attribute = when (card.ficha.atributoDestaque) {
-        "Inteligência" -> "Mente Brilhante"
-        else -> card.ficha.atributoDestaque
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFF65412F))
-            .drawWithContent {
-                drawContent()
-                drawRoundRect(
-                    color = Color(0xFF493125),
-                    style = Stroke(width = 4.dp.toPx()),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(18.dp.toPx())
-                )
-            }
-            .padding(5.dp)
-            .clip(RoundedCornerShape(14.dp))
-    ) {
-        Image(
-            painter = painterResource(R.drawable.grunge_paper_background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+/**
+ * Helper para ajustar contraste, brilho (-255f a 255f) e saturação das imagens
+ */
+private fun criarColorMatrix(
+    contrast: Float = 1f,
+    brightness: Float = 0f,
+    saturation: Float = 1f
+): ColorMatrix {
+    val translate = (1f - contrast) / 2f * 255f + brightness
+    val contrastBrightnessMatrix = ColorMatrix(
+        floatArrayOf(
+            contrast, 0f, 0f, 0f, translate,
+            0f, contrast, 0f, 0f, translate,
+            0f, 0f, contrast, 0f, translate,
+            0f, 0f, 0f, 1f, 0f
         )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0x3370442E))
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "🧝 ${card.ficha.nome.uppercase()}",
-                color = Color(0xFFF2DFC7),
-                fontFamily = FontFamily.Serif,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = "${card.ficha.raca} • ${card.ficha.classe} • ${card.alinhamento}",
-                color = Color(0xFFF2DFC7),
-                fontFamily = FontFamily.Serif,
-                fontSize = 11.sp
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                DetailLine("Atributo: $attribute")
-                DetailLine("Bônus Racial: $raceBonus")
-                DetailLine("Gancho: ${card.gancho}")
-            }
-        }
+    )
+    val saturationMatrix = ColorMatrix().apply {
+        setToSaturation(saturation)
     }
+    contrastBrightnessMatrix.timesAssign(saturationMatrix)
+    return contrastBrightnessMatrix
 }
 
+@Preview(showBackground = true, widthDp = 360, heightDp = 760)
 @Composable
-private fun DetailLine(text: String) {
-    Row(verticalAlignment = Alignment.Top) {
-        Text(
-            text = "✦",
-            color = Color(0xFFF2DFC7),
-            fontSize = 12.sp
-        )
-        Spacer(modifier = Modifier.width(5.dp))
-        Text(
-            text = text,
-            color = Color(0xFFF2DFC7),
-            fontFamily = FontFamily.Serif,
-            fontSize = 11.sp,
-            lineHeight = 13.sp
-        )
-    }
-}
-
-@Composable
-private fun DiceIllustration(modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val lineWidth = 3.dp.toPx()
-        val points = listOf(
-            androidx.compose.ui.geometry.Offset(size.width * 0.50f, size.height * 0.04f),
-            androidx.compose.ui.geometry.Offset(size.width * 0.87f, size.height * 0.23f),
-            androidx.compose.ui.geometry.Offset(size.width * 0.95f, size.height * 0.63f),
-            androidx.compose.ui.geometry.Offset(size.width * 0.62f, size.height * 0.96f),
-            androidx.compose.ui.geometry.Offset(size.width * 0.29f, size.height * 0.91f),
-            androidx.compose.ui.geometry.Offset(size.width * 0.05f, size.height * 0.56f),
-            androidx.compose.ui.geometry.Offset(size.width * 0.17f, size.height * 0.22f)
-        )
-        val center = androidx.compose.ui.geometry.Offset(size.width * 0.50f, size.height * 0.53f)
-        val outline = Path().apply {
-            moveTo(points.first().x, points.first().y)
-            points.drop(1).forEach { lineTo(it.x, it.y) }
-            close()
-        }
-        drawPath(outline, Color.White, style = Stroke(width = lineWidth))
-        points.forEachIndexed { index, point ->
-            val next = points[(index + 2) % points.size]
-            drawLine(Color.White, point, center, strokeWidth = lineWidth)
-            if (index % 2 == 0) {
-                drawLine(Color.White, point, next, strokeWidth = lineWidth)
-            }
-        }
+private fun HomeScreenPreview() {
+    // Preview visual idêntico ao Figma com o card visível
+    Box(modifier = Modifier.fillMaxSize()) {
+        HomeScreen()
     }
 }

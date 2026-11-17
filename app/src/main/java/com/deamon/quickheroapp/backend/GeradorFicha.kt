@@ -54,7 +54,7 @@ object GeradorFicha {
 
     fun gerarFichaAleatoria(): FichaRPG {
         val classe = classes.random()
-        val atributoDestaque = when (classe) {
+        val atributo = when (classe) {
             "Guerreiro", "Bárbaro" -> "Força"
             "Mago" -> "Inteligência"
             "Ladino", "Patrulheiro" -> "Agilidade"
@@ -71,7 +71,10 @@ object GeradorFicha {
             nome = nome,
             classe = classe,
             raca = raca.nome,
-            atributoDestaque = atributoDestaque
+            alinhamento = alinhamentos.random(),
+            atributo = atributo,
+            bonusRacial = raca.bonus,
+            gancho = ganchos.random()
         )
     }
 
